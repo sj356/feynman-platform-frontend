@@ -139,18 +139,60 @@ function Home() {
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <h2 style={{ fontSize: 18, margin: '0 0 10px', color: '#1f2937' }}>{kp.title}</h2>
-                <span
-                  style={{
-                    fontSize: 12,
-                    color: '#7c3aed',
-                    background: '#f3e8ff',
-                    padding: '2px 10px',
-                    borderRadius: 999,
-                  }}
-                >
-                  {kp.status === 'mastered' ? '已掌握' : kp.status === 'in_progress' ? '学习中' : '未开始'}
-                </span>
+                <h2 style={{ fontSize: 18, margin: '0 0 10px', color: '#1f2937' }}>
+                  {kp.title}
+                </h2>
+
+                {/* 右上角状态标签：待复习 > 掌握得很好 > 学习中 > 未开始 */}
+                {kp.reviewList ? (
+                  <span
+                    style={{
+                      fontSize: 12,
+                      color: '#ef4444',
+                      background: '#fef2f2',
+                      padding: '2px 10px',
+                      borderRadius: 999,
+                    }}
+                  >
+                    📌 待复习
+                  </span>
+                ) : kp.status === 'mastered' ? (
+                  <span
+                    style={{
+                      fontSize: 12,
+                      color: '#10b981',
+                      background: '#ecfdf5',
+                      padding: '2px 10px',
+                      borderRadius: 999,
+                    }}
+                  >
+                    掌握得很好
+                  </span>
+                ) : kp.status === 'in_progress' ? (
+                  <span
+                    style={{
+                      fontSize: 12,
+                      color: '#7c3aed',
+                      background: '#f3e8ff',
+                      padding: '2px 10px',
+                      borderRadius: 999,
+                    }}
+                  >
+                    学习中
+                  </span>
+                ) : (
+                  <span
+                    style={{
+                      fontSize: 12,
+                      color: '#7c3aed',
+                      background: '#f3e8ff',
+                      padding: '2px 10px',
+                      borderRadius: 999,
+                    }}
+                  >
+                    未开始
+                  </span>
+                )}
               </div>
 
               <div
@@ -206,7 +248,7 @@ function Home() {
                   </button>
                 </Link>
 
-                {/* 👇 新增：绿色"开始复述"按钮 */}
+                {/* 绿色"开始复述"按钮 */}
                 <Link to={`/feynman/${kp._id}`}>
                   <button
                     style={{
