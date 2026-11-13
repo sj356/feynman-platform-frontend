@@ -84,21 +84,41 @@ function Home() {
             欢迎回来，{user?.email}
           </p>
         </div>
-        <Link to="/kp/new">
-          <button
-            style={{
-              padding: '10px 20px',
-              background: '#7c3aed',
-              color: '#fff',
-              border: 'none',
-              borderRadius: 8,
-              fontSize: 14,
-              cursor: 'pointer',
-            }}
-          >
-            + 新建知识点
-          </button>
-        </Link>
+
+        {/* 👇 顶部操作区：综合测评 + 新建知识点 */}
+        <div style={{ display: 'flex', gap: 10 }}>
+          <Link to="/exam" style={{ textDecoration: 'none' }}>
+            <button
+              style={{
+                padding: '10px 20px',
+                background: '#f59e0b',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 8,
+                fontSize: 14,
+                cursor: 'pointer',
+              }}
+            >
+              📋 综合测评
+            </button>
+          </Link>
+
+          <Link to="/kp/new">
+            <button
+              style={{
+                padding: '10px 20px',
+                background: '#7c3aed',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 8,
+                fontSize: 14,
+                cursor: 'pointer',
+              }}
+            >
+              + 新建知识点
+            </button>
+          </Link>
+        </div>
       </div>
 
       <p style={{ color: '#9ca3af', fontSize: 13, margin: '10px 0 0' }}>
@@ -227,7 +247,7 @@ function Home() {
                 </ReactMarkdown>
               </div>
 
-              {/* 操作按钮：编辑 | 开始复述 | 删除 */}
+              {/* 操作按钮：编辑 | 开始复述 | 开始测评 | 删除 */}
               <div
                 style={{ marginTop: 14, display: 'flex', gap: 10 }}
                 onDoubleClick={(e) => e.stopPropagation()}
@@ -262,6 +282,23 @@ function Home() {
                     }}
                   >
                     🎤 开始复述
+                  </button>
+                </Link>
+
+                {/* 橙色"开始测评"按钮 */}
+                <Link to={`/quiz/${kp._id}`}>
+                  <button
+                    style={{
+                      padding: '6px 16px',
+                      background: '#f59e0b',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: 6,
+                      fontSize: 13,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    📝 开始测评
                   </button>
                 </Link>
 
