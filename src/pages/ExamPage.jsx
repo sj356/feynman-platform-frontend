@@ -309,6 +309,40 @@ function ExamPage() {
         });
       }
 
+      // 批量写入学习记录（失败静默，不阻断交卷）
+      for (let i = 0; i < questions.length; i++) {
+        const item = questions[i];
+        const nr = newResults[i];
+        let correctAnswer = '';
+        if (item.type === 'single-choice') {
+          correctAnswer = item.question.answer;
+        } else if (item.type === 'multiple-choice') {
+          const ans = Array.isArray(item.question.answer)
+            ? item.question.answer
+            : [item.question.answer].filter(Boolean);
+          correctAnswer = [...ans].sort().join(', ');
+        } else if (item.type === 'true-false') {
+          correctAnswer = normalizeBool(item.question.answer) === 'true' ? '✅ 正确' : '❌ 错误';
+        } else {
+          correctAnswer = (item.question.answer_key_points || []).join('；');
+        }
+        try {
+          await apiClient.post('/records', {
+            kp: item.kp._id,
+            source: 'exam',
+            questionType: item.type,
+            question: nr.questionText,
+            options: item.question.options || {},
+            userAnswer: nr.userAnswer,
+            correctAnswer,
+            isCorrect: nr.isCorrect,
+            explanation: nr.explanation,
+          });
+        } catch (e) {
+          console.error('写入测评记录失败', e);
+        }
+      }
+
       await syncReviewStatus(newResults);
       setResults(newResults);
       setPhase('result');

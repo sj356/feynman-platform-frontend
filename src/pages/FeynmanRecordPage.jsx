@@ -30,6 +30,27 @@ function FeynmanRecordPage() {
       const feedback = feedbackRes.data;
       setAiFeedback(feedback);
 
+      // 写入复述学习记录（失败静默，不阻断主流程）
+      try {
+        await apiClient.post('/records', {
+          kp: id,
+          source: 'feynman',
+          questionType: 'feynman',
+          question: kpContent,
+          userAnswer: transcribed,
+          score: feedback.score != null ? Number(feedback.score) : null,
+          explanation: feedback.evaluation || '',
+          feedback: {
+            polishedText: feedback.polishedText,
+            evaluation: feedback.evaluation,
+            strengths: feedback.strengths,
+            weaknesses: feedback.weaknesses,
+          },
+        });
+      } catch (e) {
+        console.error('写入复述记录失败', e);
+      }
+
       // 评价后更新状态：及格(≥60)标记为已掌握并移出复习；不及格(<60)加入复习列表
       if (feedback.score != null) {
         const passed = Number(feedback.score) >= 60;

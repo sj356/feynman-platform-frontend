@@ -39,11 +39,15 @@ function Home() {
   const navigate = useNavigate();
 
   const [knowledgePoints, setKnowledgePoints] = useState([]);
+  const [stats, setStats] = useState(null);
+  const [wrongKpIds, setWrongKpIds] = useState([]);
+  const [masteryMap, setMasteryMap] = useState({});
+  const [avgMastery, setAvgMastery] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [hoveredId, setHoveredId] = useState(null);
 
-  // ===== 1. 拉取知识点列表 =====
+  // ===== 1. 拉取知识点列表 + 看板统计 =====
   useEffect(() => {
     const fetchKps = async () => {
       try {
@@ -58,6 +62,24 @@ function Home() {
       }
     };
     fetchKps();
+
+    // 看板统计失败不阻断主列表
+    apiClient.get('/statistics/overview')
+      .then((res) => setStats(res.data))
+      .catch((err) => console.error('获取统计失败', err));
+
+    // 错题关联的知识点（用于今日待复习队列），失败静默
+    apiClient.get('/records', { params: { wrong: 1 } })
+      .then((res) => setWrongKpIds([...new Set(res.data.map((r) => r.kp?._id).filter(Boolean))]))
+      .catch((err) => console.error('获取错题知识点失败', err));
+
+    // 各知识点掌握度，失败静默
+    apiClient.get('/statistics/mastery-map')
+      .then((res) => {
+        setMasteryMap(res.data.map || {});
+        setAvgMastery(res.data.avgMastery || 0);
+      })
+      .catch((err) => console.error('获取掌握度失败', err));
   }, []);
 
   // ===== 2. 删除知识点 =====
@@ -74,6 +96,15 @@ function Home() {
 
   if (loading) return <p style={{ textAlign: 'center', marginTop: 60 }}>加载中...</p>;
   if (error) return <p style={{ color: 'red', textAlign: 'center', marginTop: 60 }}>{error}</p>;
+
+  // 今日待复习队列：被标记待复习，或关联了错题的知识点
+  const reviewQueue = knowledgePoints.filter(
+    (kp) => kp.reviewList || wrongKpIds.includes(kp._id)
+  );
+
+  // 掌握分颜色：>=80 绿，>=60 橙，否则红
+  const masteryColor = (score) =>
+    score >= 80 ? '#10b981' : score >= 60 ? '#f59e0b' : '#ef4444';
 
   return (
     <div style={{ maxWidth: 960, margin: '0 auto', padding: '24px 0' }}>
@@ -103,6 +134,102 @@ function Home() {
             </button>
           </Link>
 
+          <Link to="/wrong-book" style={{ textDecoration: 'none' }}>
+            <button
+              style={{
+                padding: '10px 20px',
+                background: '#ef4444',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 8,
+                fontSize: 14,
+                cursor: 'pointer',
+              }}
+            >
+              📕 错题本
+            </button>
+          </Link>
+
+          <Link to="/ai-chat" style={{ textDecoration: 'none' }}>
+            <button
+              style={{
+                padding: '10px 20px',
+                background: '#2563eb',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 8,
+                fontSize: 14,
+                cursor: 'pointer',
+              }}
+            >
+              🤖 AI 助教
+            </button>
+          </Link>
+
+          <Link to="/ai-breakdown" style={{ textDecoration: 'none' }}>
+            <button
+              style={{
+                padding: '10px 20px',
+                background: '#10b981',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 8,
+                fontSize: 14,
+                cursor: 'pointer',
+              }}
+            >
+              🧩 AI 拆解
+            </button>
+          </Link>
+
+          <Link to="/history" style={{ textDecoration: 'none' }}>
+            <button
+              style={{
+                padding: '10px 20px',
+                background: '#64748b',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 8,
+                fontSize: 14,
+                cursor: 'pointer',
+              }}
+            >
+              📜 学习历史
+            </button>
+          </Link>
+
+          <Link to="/ai-note" style={{ textDecoration: 'none' }}>
+            <button
+              style={{
+                padding: '10px 20px',
+                background: '#0ea5e9',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 8,
+                fontSize: 14,
+                cursor: 'pointer',
+              }}
+            >
+              📝 AI 笔记
+            </button>
+          </Link>
+
+          <Link to="/report" style={{ textDecoration: 'none' }}>
+            <button
+              style={{
+                padding: '10px 20px',
+                background: '#f97316',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 8,
+                fontSize: 14,
+                cursor: 'pointer',
+              }}
+            >
+              📊 学习报告
+            </button>
+          </Link>
+
           <Link to="/kp/new">
             <button
               style={{
@@ -124,6 +251,105 @@ function Home() {
       <p style={{ color: '#9ca3af', fontSize: 13, margin: '10px 0 0' }}>
         💡 小提示：双击任意卡片可快速进入编辑
       </p>
+
+      {/* 数据看板 */}
+      {stats && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 12, marginTop: 16 }}>
+          {[
+            { label: '知识点总数', value: stats.kpTotal, color: '#1f2937' },
+            { label: '已掌握', value: stats.mastered, color: '#10b981' },
+            { label: '待复习', value: stats.reviewCount, color: '#ef4444' },
+            { label: '累计答题', value: stats.answerCount, color: '#2563eb' },
+            { label: '正确率', value: `${stats.accuracy}%`, color: '#7c3aed' },
+            { label: '复述均分', value: stats.avgScore, color: '#f59e0b' },
+            { label: '平均掌握度', value: `${avgMastery}%`, color: '#0ea5e9' },
+          ].map((c) => (
+            <div
+              key={c.label}
+              style={{
+                background: '#fff',
+                borderRadius: 12,
+                padding: '16px',
+                boxShadow: '0 2px 10px rgba(0,0,0,0.06)',
+                textAlign: 'center',
+              }}
+            >
+              <div style={{ fontSize: 28, fontWeight: 700, color: c.color }}>{c.value}</div>
+              <div style={{ fontSize: 13, color: '#6b7280', marginTop: 4 }}>{c.label}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* 今日待复习队列 */}
+      {reviewQueue.length > 0 && (
+        <div style={{ marginTop: 20 }}>
+          <h2 style={{ fontSize: 18, color: '#1f2937', margin: '0 0 12px' }}>
+            📌 今日待复习（{reviewQueue.length}）
+          </h2>
+          {reviewQueue.map((kp) => {
+            const hasWrong = wrongKpIds.includes(kp._id);
+            return (
+              <div
+                key={kp._id}
+                style={{
+                  background: '#fff',
+                  borderRadius: 12,
+                  padding: '14px 18px',
+                  marginBottom: 10,
+                  boxShadow: '0 2px 10px rgba(0,0,0,0.06)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  gap: 12,
+                }}
+              >
+                <div>
+                  <strong style={{ color: '#1f2937' }}>{kp.title}</strong>
+                  {kp.reviewList && (
+                    <span style={{ marginLeft: 10, fontSize: 12, color: '#ef4444' }}>📌 待复习</span>
+                  )}
+                  {!kp.reviewList && hasWrong && (
+                    <span style={{ marginLeft: 10, fontSize: 12, color: '#ef4444' }}>❌ 含错题</span>
+                  )}
+                </div>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <Link to={`/feynman/${kp._id}`}>
+                    <button
+                      style={{
+                        padding: '6px 14px',
+                        background: '#10b981',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: 6,
+                        fontSize: 13,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      🎤 复述
+                    </button>
+                  </Link>
+                  <Link to={`/quiz/${kp._id}`}>
+                    <button
+                      style={{
+                        padding: '6px 14px',
+                        background: '#f59e0b',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: 6,
+                        fontSize: 13,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      📝 测评
+                    </button>
+                  </Link>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       <div style={{ marginTop: 16 }}>
         {knowledgePoints.length === 0 ? (
@@ -214,6 +440,23 @@ function Home() {
                   </span>
                 )}
               </div>
+
+              {/* 掌握度进度条 */}
+              {(() => {
+                const score = masteryMap[kp._id] ?? 0;
+                const color = masteryColor(score);
+                return (
+                  <div style={{ margin: '0 0 12px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#6b7280', marginBottom: 4 }}>
+                      <span>掌握度</span>
+                      <span style={{ fontWeight: 700, color }}>{score} 分</span>
+                    </div>
+                    <div style={{ background: '#f3f4f6', borderRadius: 999, height: 8, overflow: 'hidden' }}>
+                      <div style={{ width: `${score}%`, background: color, height: '100%', borderRadius: 999 }} />
+                    </div>
+                  </div>
+                );
+              })()}
 
               <div
                 style={{

@@ -140,6 +140,15 @@ function QuizPage() {
     );
   };
 
+  // 写入一条学习记录（失败静默，不影响主流程）
+  const writeRecord = async (payload) => {
+    try {
+      await apiClient.post('/records', { kp: id, source: 'quiz', ...payload });
+    } catch (err) {
+      console.error('写入学习记录失败', err);
+    }
+  };
+
   // 5. 提交答案
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -153,6 +162,15 @@ function QuizPage() {
       }
       const correct = selectedOption === question.answer;
       setResult({ isCorrect: correct, explanation: question.explanation });
+      writeRecord({
+        questionType: 'single-choice',
+        question: question.question,
+        options: question.options || {},
+        userAnswer: `${selectedOption}. ${question.options?.[selectedOption] || ''}`,
+        correctAnswer: question.answer,
+        isCorrect: correct,
+        explanation: question.explanation,
+      });
       correct ? markMastered() : markNeedsReview();
       return;
     }
@@ -170,6 +188,15 @@ function QuizPage() {
       const sortedAns = [...ans].sort().join(',');
       const correct = sortedUser === sortedAns;
       setResult({ isCorrect: correct, explanation: question.explanation });
+      writeRecord({
+        questionType: 'multiple-choice',
+        question: question.question,
+        options: question.options || {},
+        userAnswer: [...selectedMulti].sort().join(', '),
+        correctAnswer: [...ans].sort().join(', '),
+        isCorrect: correct,
+        explanation: question.explanation,
+      });
       correct ? markMastered() : markNeedsReview();
       return;
     }
@@ -182,6 +209,14 @@ function QuizPage() {
       }
       const correct = normalizeBool(selectedOption) === normalizeBool(question.answer);
       setResult({ isCorrect: correct, explanation: question.explanation });
+      writeRecord({
+        questionType: 'true-false',
+        question: question.question,
+        userAnswer: normalizeBool(selectedOption) === 'true' ? '✅ 正确' : '❌ 错误',
+        correctAnswer: normalizeBool(question.answer) === 'true' ? '✅ 正确' : '❌ 错误',
+        isCorrect: correct,
+        explanation: question.explanation,
+      });
       correct ? markMastered() : markNeedsReview();
       return;
     }
@@ -204,6 +239,14 @@ function QuizPage() {
         { timeout: 30000 }
       );
       setResult({ isCorrect: res.data.isCorrect, explanation: res.data.explanation });
+      writeRecord({
+        questionType: 'short-answer',
+        question: question.question,
+        userAnswer: shortAnswer.trim(),
+        correctAnswer: (question.answer_key_points || []).join('；'),
+        isCorrect: res.data.isCorrect,
+        explanation: res.data.explanation,
+      });
       res.data.isCorrect ? markMastered() : markNeedsReview();
     } catch (err) {
       console.error('AI 评分失败', err);
